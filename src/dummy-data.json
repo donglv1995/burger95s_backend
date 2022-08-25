@@ -1,0 +1,10 @@
+{
+    "users": [
+        {"userid": 1, "username": "Dong", "age": 27},
+        {"userid": 2, "username": "Quan", "age": 25},
+        {"userid": 3, "username": "Hieu", "age": 2}
+    ],
+    "items": [
+
+    ]
+}
