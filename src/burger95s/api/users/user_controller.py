@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from src.dummy_database import User, read_all_users, create_user, update_user,read_user_byId
-import json
+
 
 router = APIRouter()
 
