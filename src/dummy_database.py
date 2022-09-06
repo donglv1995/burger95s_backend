@@ -18,6 +18,7 @@ def read_all_users():
     file_read.close()
     for user in j['users']:
         users.append(User(**user))
+    return users
 
 
 def read_user_byId(userid):
