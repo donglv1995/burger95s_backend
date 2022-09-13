@@ -2,18 +2,20 @@ version: "3.10"
 
 services:
   burger95s-backend:
-    image: kyquan2104/docker_hub:burger95s.backend
+    image: burger95s:V2
     ports:
-      - "9999:9999"
+      - 9999:9999
     volumes:
       - ./myvol:/myvol
+    depends_on:
+      - burger95s-db
   burger95s-db:
     image: postgres:latest
+    ports:
+      - 5432:5432
     volumes:
-      - data:/data
+      - .data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_PASSWORD=abc@12345
-volumes:
-  data:
-
-
+      - POSTGRES_PASSWORD=210497
+      - POSTGRES_USER=postgres
+    restart: always
