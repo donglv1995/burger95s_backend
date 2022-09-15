@@ -3,6 +3,8 @@ WORKDIR /app
 
 # expose port for container
 EXPOSE 9999
+EXPOSE 5432
+EXPOSE 443
 
 # copy required dependencies
 COPY requirements.txt /app/
