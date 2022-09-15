@@ -1,69 +1,100 @@
+from http.client import HTTPException
+from typing import final
 import src.database.db_context as dbcontext
-from ...burger95s.models.user_info import User 
+from ...burger95s.dto.models.user_info import UserInfo
 
 def get_all_users():
-    query = "SELECT * FROM UserInfo WHERE is_deleted = false;"
-    db = dbcontext.connect_db()
-    cur = db.cursor()
-    cur.execute(query)
-    res = cur.fetchall()
-    db.close()
+    try:
+        query = "SELECT * FROM Users WHERE is_deleted = false;"
+        db = dbcontext.connect_db()
+        cur = db.cursor()
+        cur.execute(query)
+        res = cur.fetchall()
+
+    except:
+        raise HTTPException(status_code=500, detail="Cause some issues relate to connection with database, please check it")
+
+    finally:
+        db.close()
 
     return res
 
-def get_user_by_id(userid):
-    # to prevent SQL injection we're using query parameter
-    query = "SELECT * FROM UserInfo WHERE user_id = %s;"
-    db = dbcontext.connect_db()
-    cur = db.cursor()
-    cur.execute(query, (userid,))
-    res = cur.fetchone()
-    db.close()
+def get_user_by_id(user_id):
+    # to prevent SQL injection we use query parameter
+    try:
+        query = "SELECT * FROM Users WHERE user_id = %s;"
+        db = dbcontext.connect_db()
+        cur = db.cursor()
+        cur.execute(query, (user_id,))
+        res = cur.fetchone()
+    
+    except:
+        raise HTTPException(status_code=500, detail="Cause some issues relate to connection with database or there is no User such, please check it")
+
+    finally:
+        db.close()
 
     return res
 
-def create_user(user: User):
+def create_user(user: UserInfo):
+    try:
+        query = "INSERT INTO Users(user_name, gender, phone) VALUES(%s, %s, %s);"
+        db = dbcontext.connect_db()
+        cur = db.cursor()
+        cur.execute(query,(user.user_name, user.gender, user.phone))
+        db.commit()
+    
+    except:
+        raise HTTPException(status_code=500, detail="Cause some issues relate to connection with database, please check it")
 
-    query = "INSERT INTO UserInfo(user_name, gender, phone) VALUES(%s, %s, %s);"
-    db = dbcontext.connect_db()
-    cur = db.cursor()
-    cur.execute(query,(user.user_name, user.gender, user.phone))
-    db.commit()
-    db.close()
+    finally:
+        db.close()
 
     return "A newly user is created !"
 
-def update_user(user: User):
+def update_user(user_id, user: UserInfo):
+    try:
+        query = "UPDATE Users SET user_name = %s, gender = %s, phone = %s WHERE user_id = %s;"
+        db = dbcontext.connect_db()
+        cur = db.cursor()
+        cur.execute(query,(user.user_name, user.gender, user.phone, user_id))
+        db.commit()
+    
+    except:
+        raise HTTPException(status_code=500, detail="Cause some issues relate to connection with database or there is no ID such, please check it")
 
-    query = "UPDATE UserInfo SET user_name = %s, gender = %s, phone = %s WHERE user_id = %s;"
-    db = dbcontext.connect_db()
-    cur = db.cursor()
-    cur.execute(query,(user.user_name, user.gender, user.phone, user.user_id))
-    db.commit()
-    db.close()
+    finally:
+        db.close()
 
     return "Update information successfully !"
 
 
-def delete_user(userid, is_hard_delete: bool):
-    soft_delete_query = "UPDATE UserInfo SET is_deleted = true WHERE user_id = %s;"
-    hard_delete_query = "DELETE FROM UserInfo WHERE user_id = %s;"
-    db = dbcontext.connect_db()
-    cur = db.cursor()
+def delete_user(user_id, is_hard_delete: bool):
+    try:
+    
+        if is_hard_delete:
+            query = "DELETE FROM Users WHERE user_id = %s;"
+            
+        else:
+            query = "UPDATE Users SET is_deleted = true WHERE user_id = %s;"
 
-    if is_hard_delete:
-        cur.execute(hard_delete_query, (userid,))
+        db = dbcontext.connect_db()
+        cur = db.cursor()
+        cur.execute(query, (user_id,))
         db.commit()
-        db.close()
-
-        return "Permanent deletion successfully !"
         
-    else:
-        cur.execute(soft_delete_query, (userid,))
-        db.commit()
+    except:
+        raise HTTPException(status_code=500, detail="Cause some issues relate to connection with database or there is no ID user such, please check it")
+    
+    finally:
         db.close()
+    
+    if is_hard_delete:
 
-        return "Temporary deletion successfully !"
+        return "Erase User permanently !"
+
+    return "User has been deleted successfully !"
+
 
 
 
