@@ -1,18 +1,18 @@
-
 from typing import List
 from fastapi import APIRouter, Body, Form, status
 import src.services.user_service as user_service
-from ...dto.models.user_info import UserInfo, Users
+from src.burger95s.models.user_info import UserInfo
+# from src.burger95s.dto.user_info_dto import UserInfoDTO
 
 router = APIRouter(prefix='/users', tags=['users'])
 
 
-@router.get("/", summary="Get all Users", response_model=List[Users])
+@router.get("/", summary="Get all Users")
 async def get_all_users():
     return user_service.get_all_users()
 
 
-@router.get("/{user_id}", summary="Get an User by ID", response_model=Users)
+@router.get("/{user_id}", summary="Get an User by ID")
 async def get_user_by_ID(user_id):
     return user_service.get_user_by_id(user_id=user_id)
 

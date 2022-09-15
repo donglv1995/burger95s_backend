@@ -1,6 +1,6 @@
 from http.client import HTTPException
 from ..db_context import connect_db
-from ...burger95s.dto.models.item_info import Item, ItemInfo
+from src.burger95s.models.item_info import  ItemInfo
 
 def get_items():
     res = None

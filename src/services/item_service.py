@@ -1,23 +1,23 @@
-
 from http.client import HTTPException
 from ..database.repositories import item_repository
-from ..burger95s.dto.models.item_info import Item,ItemInfo
+from src.burger95s.models.item_info import ItemInfo
+from src.burger95s.dto.item_user_dto import ItemInfoDTO
 
 #by default, the key-value item_id in Item model is not in the right place, 
     # thus need to reorder that pair on Top to match with tuple values
-def get_keys():
-    item_keys = ["item_id"]
-    keys = list(ItemInfo.__fields__.keys())
-    item_keys.extend(keys)
+# def get_keys():
+#     item_keys = ["item_id"]
+#     keys = list(ItemInfo.__fields__.keys())
+#     item_keys.extend(keys)
 
-    return item_keys
+#     return item_keys
 
 # mapping list of keys with a tuple values then return it in pydantic BaseModel
-def convert_item_to_model(item, item_keys):
-    item_dict = {key: item[i] for i, key in enumerate(item_keys)}
-    item_base_model = Item(**item_dict)
-    
-    return item_base_model
+def convert_item_to_class_DTO(item):
+    id, name, price, type, size, deleted = item
+    i = ItemInfoDTO(id, name, price, type, size, deleted)
+
+    return i
 
 
 def get_items():
@@ -25,9 +25,8 @@ def get_items():
     final_result = []
     try:
         items = item_repository.get_items()
-        item_keys = get_keys()
         for item in items:
-            final_result.append(convert_item_to_model(item, item_keys))
+            final_result.append(convert_item_to_class_DTO(item))
 
     except:
         raise HTTPException("there something wrong with the try statement, please check it !")
@@ -39,9 +38,8 @@ def get_particular_items(type: str):
     final_result = []
     try:
         items = item_repository.get_particular_items(type=type)
-        item_keys = get_keys()
         for item in items:
-            final_result.append(convert_item_to_model(item, item_keys))
+            final_result.append(convert_item_to_class_DTO(item))
 
     except:
         raise ValueError('Wrong Type, please filling in approriated type !')
@@ -54,8 +52,7 @@ def get_item_by_id(itemid):
 
     try:
         item = item_repository.get_item_by_id(itemid=itemid)
-        item_keys = get_keys()
-        item = convert_item_to_model(item, item_keys)
+        item = convert_item_to_class_DTO(item)
     
     except:
         raise ValueError('Item not Found')

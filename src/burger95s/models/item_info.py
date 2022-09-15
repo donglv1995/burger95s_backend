@@ -9,6 +9,3 @@ class ItemInfo(BaseModel):
     size: Union[str, None]=None
     is_deleted: bool = False
 
-
-class Item(ItemInfo):
-    item_id: int

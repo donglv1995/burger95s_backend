@@ -1,7 +1,6 @@
 from http.client import HTTPException
-from typing import final
 import src.database.db_context as dbcontext
-from ...burger95s.dto.models.user_info import UserInfo
+from src.burger95s.models.user_info import UserInfo
 
 def get_all_users():
     try:

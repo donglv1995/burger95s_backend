@@ -8,8 +8,6 @@ class UserInfo(BaseModel):
     is_deleted: str= False
 
 
-class Users(UserInfo):
-    user_id: int
 
 
 
