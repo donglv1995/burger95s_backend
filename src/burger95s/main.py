@@ -3,8 +3,11 @@ import logging
 
 from fastapi import FastAPI
 from .api.items import item_controller
-from .api.users import user_controller
+from .api.orders import order_controller
 from .api.authen import authen_controller
+from .api.burgers import burger_controller
+from src.database.database import Base, engine
+from src.burger95s.models import models
 
 from .version import __version__
 
@@ -29,9 +32,14 @@ app.add_middleware(
 )
 
 # Init all routers within app
-app.include_router(user_controller.router)
+app.include_router(order_controller.router)
+app.include_router(burger_controller.router)
 app.include_router(item_controller.router)
 app.include_router(authen_controller.router)
+
+
+# create tables
+models.Base.metadata.create_all(bind=engine) 
 
 
 

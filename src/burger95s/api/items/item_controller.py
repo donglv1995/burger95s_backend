@@ -1,49 +1,52 @@
 from typing import List
-from fastapi import APIRouter, Query, Body
-from src.burger95s.models.item_info import ItemInfo
-from src.burger95s.dto.item_user_dto import ItemInfoDTO
+from fastapi import APIRouter
 from src.services import item_service
+from src.burger95s.schemas import item_schemas
+
 router = APIRouter(
     prefix="/items",
     tags=["items"],
-    responses={404: {"description": "NOT Found"}},
+    responses={404: {"description": "NOT Found"}}
 )
 
-@router.get("/") # items/
-async def get_items(type: str = Query(description='''
-filling correctly which type of items do you want: All, Burger, Finger food, Extra''')):
-    if type == 'All':
-        return item_service.get_items()
-    else:
-        return item_service.get_particular_items(type=type)
-    
-
-@router.get("/{itemid}") # /items/{itemid}
-async def get_item(itemid):
-
-    return item_service.get_item_by_id(itemid=itemid)
 
 
-@router.post("/")
-async def create_item(item: ItemInfo):
+# Create new Item
 
-    return item_service.create_item(item=item)
+@router.post('/', response_model = item_schemas.Item)
+def create_item(item: item_schemas.ItemCreate):
+    return item_service.create_new_item(item=item)
 
+# Get Item
 
-@router.put("/{itemid}")
-async def update_item(itemid, item: ItemInfo = Body(
-    example={
-    "item_name": 'sandwich',
-    "price": 35000,
-    "type": "Burger",
-    "size": 'M'
-})):
-
-    return item_service.update_item(itemid=itemid, item=item)
+@router.get('/', response_model = List[item_schemas.Item])
+def get_items():
+    return item_service.get_items()
 
 
-@router.put("/{itemid}/{delete}")
-async def delete_item(itemid, is_hard_delete: bool= False):
-    
-    return item_service.delete_item(itemid=itemid, is_hard_delete=is_hard_delete)
+
+@router.get('/{id}', response_model = item_schemas.Item)
+def get_an_item_by_id(item_id: int):
+    return item_service.get_item_by_id(id=item_id)
+
+
+# Update Item
+
+@router.put('/{id}')
+def update_item(item: item_schemas.Item):
+    updated = item_service.update_item_storage(item=item)
+    if updated > 0:
+        return "Item has been updated !"
+
+
+# Delete Item (softed deletion)
+
+@router.put('/{id}/delete')
+def delete_item(id: int):
+    deleted = item_service.delete_item(id=id)
+    if deleted > 0:
+        return "Item has been deleted !"
+
+
+
     
