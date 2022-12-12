@@ -1,40 +1,42 @@
-# from sqlalchemy import create_engine
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy.orm import sessionmaker
-
-
-# SQLALCHEMY_DATABASE_URL = "postgresql:postgres:210497@localhost/burger95stest"
-
-# engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True )
-
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base = declarative_base()
-
+import logging
 from contextlib import contextmanager
-import warnings
-from sqlalchemy.orm import declarative_base
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 
-engine = create_engine("postgresql://postgres:210497@localhost/demo", echo=True)
+logger = logging.getLogger(__name__)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:210497@localhost/demo"
 
 Base = declarative_base()
 
-@contextmanager
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-        
-    except:
-        # if we fail somehow rollback the connection
-        warnings.warn("We somehow failed in a DB operation and auto-rollbacking...")
-        db.rollback()
-        raise
+class Database:
+    def __init__(self, db_url: str = SQLALCHEMY_DATABASE_URL) -> None:
+        self._engine = create_engine(db_url, echo=True)
+        self._session_factory = scoped_session(
+            sessionmaker(
+                autocommit=False, 
+                autoflush=False, 
+                bind=self._engine
+                )
+        )
 
-    finally:
-        db.close()
+    def create_database(self) -> None:
+        Base.metadata.create_all(self._engine)
+    
+    @contextmanager
+    def session(self) -> Session:
+        session: Session = self._session_factory()
+        try:
+            yield session
+
+        except:
+            logger.exception("Session rollback because of exception")
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+

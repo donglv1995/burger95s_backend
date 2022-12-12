@@ -6,12 +6,12 @@ from .api.items import item_controller
 from .api.orders import order_controller
 from .api.authen import authen_controller
 from .api.burgers import burger_controller
-from src.database.database import Base, engine
-from src.burger95s.models import models
+from src.container.container import Container
 
 from .version import __version__
 
 logger = logging.getLogger(__package__)
+
 
 # Init web-app API using FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,15 +31,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# create container and tables
+container = Container()
+db = container.db()
+db.create_database()
+
 # Init all routers within app
 app.include_router(order_controller.router)
 app.include_router(burger_controller.router)
 app.include_router(item_controller.router)
 app.include_router(authen_controller.router)
 
-
-# create tables
-models.Base.metadata.create_all(bind=engine) 
 
 
 
