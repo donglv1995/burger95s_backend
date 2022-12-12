@@ -1,7 +1,10 @@
 from typing import List
-from fastapi import APIRouter
-from src.services import item_service
+from fastapi import APIRouter, Depends
+from dependency_injector.wiring import inject, Provide
+
 from src.burger95s.schemas import item_schemas
+from src.services.item_service import ItemService
+from src.container.container import Container
 
 router = APIRouter(
     prefix="/items",
@@ -11,41 +14,38 @@ router = APIRouter(
 
 
 
-# Create new Item
-
-@router.post('/', response_model = item_schemas.Item)
-def create_item(item: item_schemas.ItemCreate):
-    return item_service.create_new_item(item=item)
-
-# Get Item
-
 @router.get('/', response_model = List[item_schemas.Item])
-def get_items():
+@inject
+def get_items(item_service: ItemService = Depends(Provide[Container.item_service]),):
     return item_service.get_items()
 
 
-
-@router.get('/{id}', response_model = item_schemas.Item)
-def get_an_item_by_id(item_id: int):
-    return item_service.get_item_by_id(id=item_id)
-
-
-# Update Item
-
-@router.put('/{id}')
-def update_item(item: item_schemas.Item):
-    updated = item_service.update_item_storage(item=item)
-    if updated > 0:
-        return "Item has been updated !"
+@router.get('/{id}/', response_model= item_schemas.Item)
+@inject
+def get_item_by_id(
+    item_id: int,
+    item_service: ItemService = Depends(Provide[Container.item_service])
+):
+    return item_service.get_item_by_id(item_id=item_id)
 
 
-# Delete Item (softed deletion)
+@router.post('/', response_model=item_schemas.Item)
+@inject
+def create_item(
+    item: item_schemas.ItemCreate,
+    item_service: ItemService = Depends(Provide[Container.item_service])
+):
+    return item_service.create_item(item=item)
 
-@router.put('/{id}/delete')
-def delete_item(id: int):
-    deleted = item_service.delete_item(id=id)
-    if deleted > 0:
-        return "Item has been deleted !"
+
+@router.put('/{id}/', response_model=item_schemas.DeletedItem)
+@inject
+def delete_item(
+    item_id: int,
+    item_service: ItemService = Depends(Provide[Container.item_service])
+):
+    return item_service.soft_delete_item_by_id(item_id=item_id)
+
 
 
 

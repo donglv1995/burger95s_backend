@@ -1,107 +1,81 @@
-# from sqlalchemy.orm import joinedload
-
-from src.burger95s.schemas import item_schemas
-from src.database import database
+from sqlalchemy.orm import Session
 from src.burger95s.models import models
-
-# default
-def get_items(): # return available items in Storage include: ID, name, quantity
-    with database.get_db() as db:
-        return db.query(models.Item.id,models.Item.name,models.StorageItem.quantity)\
-                    .join(models.StorageItem) \
-                        .where(models.StorageItem.item_id == models.Item.id, \
-                                models.StorageItem.out_of_stock == False).all()
+from src.burger95s.schemas import item_schemas
 
 
 
-def get_item_by_id(item_id: int):
-    with database.get_db() as db:
-        return db.query(models.Item.id,models.Item.name,models.StorageItem.quantity)\
-                    .join(models.StorageItem) \
-                    .where(models.StorageItem.item_id == item_id, \
-                         models.StorageItem.out_of_stock == False).first()
+class ItemRepository:
+    def __init__(self, session_factory: Session) -> None:
+        self.session_factory = session_factory
+    
+    def get_items(self):
+        with self.session_factory() as session:
+            return session.query(models.Item.id, models.Item.name, models.StorageItem.quantity)\
+                            .join(models.StorageItem)\
+                            .where(models.Item.id == models.StorageItem.item_id, models.StorageItem.out_of_stock == False).all()
+    
+    def get_item_by_id(self, item_id: int):
+        with self.session_factory() as session:
+            item =  session.query(models.Item.id, models.Item.name, models.StorageItem.quantity)\
+                    .join(models.StorageItem)\
+                    .where(
+                        models.Item.id == item_id, 
+                        models.Item.id == models.StorageItem.item_id, 
+                        models.StorageItem.out_of_stock == False
+                    ).first()
 
+            if not item:
+                raise ItemNotFound(item_id)
 
+            return item
+    
+    def create_item(self, item: item_schemas.ItemCreate):
+        with self.session_factory() as session:
+            item_info = models.Item(item.name)
+            session.add(item_info)  
+            session.flush()
 
+            item_storage = models.StorageItem(item_id=item_info.id, quantity=item.quantity)
+            session.add(item_storage)
 
+            session.commit()
+            session.refresh(item_info)
+            session.refresh(item_storage)
 
-def create_item(item: item_schemas.ItemCreate):
-    with database.get_db() as db:
-        # create item with id and name
-        db_item = models.Item(name=item.name)
-        db.add(db_item)
-        db.commit() # commit first to get PK of new Item
-
-        # create quantity and item_id for item in storage
-        db_storage_item = models.StorageItem(quantity=item.quantity, item_id=db_item.id).first()
-        db.add(db_storage_item)
-        db.commit()
-        
-
-        return db_storage_item
-
-
-
-def delete_item_storage_by_id(item_id: int): # soft delete
-    with database.get_db() as db:
-        try:
-            deleted_item = db.query(models.StorageItem) \
-                                .filter(models.StorageItem.item_id==item_id) \
-                                .update(
-                                        {models.StorageItem.out_of_stock: True},
-                                        synchronize_session=False
-                                    )
-
-            db.commit()
-            return deleted_item
-
-        except:
-            raise Exception('cannot delete the item, maybe there something wrong with the id or item does not exist')
-        
-
-
-def update_item_storage(item: item_schemas.Item): # adding quantity to Item
-    with database.get_db() as db:
-        try:
-            db_item = db.query(models.StorageItem)\
-                            .filter(models.StorageItem.item_id == item.id)\
-                            .update(
-                                {models.StorageItem.quantity: models.StorageItem.quantity + item.quantity},                   
-                                synchronize_session=False
-                            )
-
-            db.commit()
-
-            return db_item
+            return item_info
             
-        except :
-            raise Exception("it's not working at the Repository layer")
-        
 
 
-# work with other services
-def check_remaining_item(item_id: int, quantity: int) -> bool:
-    with database.get_db() as db:
-
-        storage_item = db.query(models.StorageItem.quantity)\
-                            .join(models.Item)\
-                            .where(models.StorageItem.item_id == item_id, \
-                                    models.StorageItem.out_of_stock==False).first()
-                                        
-        # comparison between number of given quantity and quantity in Storage                        
-        if storage_item.quantity < quantity: return False
-
-        else: return True
-
-
-def update_item_quantity(id: int, quantity: int): # update Item's quantity after taking out the Storage
-    with database.get_db() as db:
-        db.query(models.StorageItem)\
-                .filter(models.StorageItem.item_id==id)\
+    def soft_delete_item_by_id(self, item_id):
+        with self.session_factory() as session:
+            session.query(models.StorageItem)\
+                .filter(models.StorageItem.item_id == item_id)\
                 .update(
-                        {models.StorageItem.quantity:models.StorageItem.quantity - quantity},
-                        synchronize_session=False
-                    )
+                    {models.StorageItem.out_of_stock: True},
+                    synchronize_session=False
+                )
+            session.flush()
+            session.commit()
 
-        db.commit()
+            item = session.query(models.Item.id, models.Item.name, models.StorageItem.quantity, models.StorageItem.out_of_stock)\
+                    .join(models.StorageItem)\
+                    .where(
+                        models.Item.id == item_id, 
+                        models.Item.id == models.StorageItem.item_id
+                    ).first()
+
+            if not item:
+                raise ItemNotFound(item_id)
+
+            return item
+
+class NotFoundError(Exception):
+    entity_name: str
+
+    def __init__(self, entity_id) -> None:
+        super().__init__(f"{self.entity_name} not found, id: {entity_id}")
+
+
+class ItemNotFound(NotFoundError):
+    entity_name: str = "Item"
 

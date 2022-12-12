@@ -10,12 +10,16 @@ class ItemCreate(ItemBase):
     pass
 
 
-
-class Item(ItemBase): # schema's built for Item
+class Item(ItemBase): # schema builds for Item
     id: int
 
     class Config:
         orm_mode = True
+
+
+class DeletedItem(Item):
+    out_of_stock: bool
+
 
 
 
